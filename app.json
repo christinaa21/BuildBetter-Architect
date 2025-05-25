@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "BuildBetter-Architect",
+    "name": "BuildBetter Architect",
     "slug": "BuildBetter-Architect",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.christinaa21.BuildBetter",
+      "package": "com.christinaa21.BuildBetterArchitect",
       "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true
     },
@@ -41,6 +41,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "386e8387-d12d-4eaf-8c92-5fa6da765dff"
+      }
     }
   }
 }

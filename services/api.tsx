@@ -120,7 +120,6 @@ export const authApi = {
       if (axios.isAxiosError(error) && error.response) {
         return error.response.data as UserProfileResponse;
       }
-      // Create a standardized error response for network or unexpected errors
       return {
         code: 500,
         status: 'ERROR',

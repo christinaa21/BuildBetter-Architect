@@ -50,7 +50,7 @@ const Login = () => {
   // Prevent going back to login page if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/temp');
+      router.replace('/chat');
     }
   }, [isAuthenticated]);
 
@@ -108,7 +108,7 @@ const Login = () => {
       
       if (response.code === 200) {
         console.log('Login successful');
-        router.replace('/temp');
+        router.replace('/chat');
       } else {
         // Handle specific error cases
         if (response.error === 'Architect not found') {
