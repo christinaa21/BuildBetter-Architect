@@ -3,7 +3,6 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { authApi, LoginResponse } from '@/services/api';
 import { useRouter } from 'expo-router';
-import { Alert } from 'react-native';
 
 type AuthContextType = {
   isAuthenticated: boolean;
@@ -11,6 +10,7 @@ type AuthContextType = {
   user: {
     userId?: string;
     email?: string;
+    username?: string;
   } | null;
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
@@ -31,9 +31,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const token = await SecureStore.getItemAsync('userToken');
         if (token) {
           const userId = await SecureStore.getItemAsync('userId') || undefined;
-          const email = await SecureStore.getItemAsync('userEmail') || undefined;
+          const email = await SecureStore.getItemAsync('email') || undefined;
+          const username = await SecureStore.getItemAsync('username') || undefined;
          
-          setUser({ userId, email });
+          setUser({ userId, email, username });
           setIsAuthenticated(true);
         }
       } catch (error) {
@@ -57,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser({
         userId: response.data.userId,
         email: response.data.email,
+        username: response.data.username,
       });
       setIsAuthenticated(true);
     }

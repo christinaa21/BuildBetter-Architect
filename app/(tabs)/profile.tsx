@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import Button from '@/components/Button';
 import { useAuth } from '@/context/AuthContext';
 import { authApi } from '@/services/api';
-import theme from '../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import Button from '@/components/Button';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import theme from '../theme';
 
 interface UserProfileResponse {
     id: string;
@@ -35,15 +35,16 @@ const WHITE_SHEET_BORDER_RADIUS = 25;
 
 export default function Profile() {
   const { logout, user } = useAuth();
-//   const name = user?.username;
+  const name = user?.username;
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      setIsLoading(true); // Set loading true when fetch starts
+      setIsLoading(true);
       try {
         const response = await authApi.getUserProfile();
         if (response.code === 200 && response.data) {
@@ -55,7 +56,7 @@ export default function Profile() {
         console.error('Error fetching profile:', error);
         Alert.alert('Error', 'Failed to load profile data');
       } finally {
-        setIsLoading(false); // Set loading false when fetch completes or fails
+        setIsLoading(false);
       }
     };
 
@@ -76,7 +77,7 @@ export default function Profile() {
           onPress: async () => {
             try {
               await logout();
-              router.replace('/');  // Navigate back to login screen
+              router.replace('/');
             } catch (error) {
               console.error('Error logging out:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -87,37 +88,82 @@ export default function Profile() {
     );
   };
 
-  const getProfileImageSource = () => { // Renamed for clarity, as it returns the source object
-    if (!userProfile || userProfile.photo === null) {
+  const getProfileImageSource = () => {
+    // If no photo URL or image failed to load, return blank profile
+    if (!userProfile?.photo || imageLoadError) {
       return require('@/assets/images/blank-profile.png');
+    }
+
+    // Return the photo URL as source
+    return { uri: userProfile.photo };
+  };
+
+  const handleImageError = () => {
+    setImageLoadError(true);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoadError(false);
+  };
+
+  // Helper function to safely format currency
+  const formatCurrency = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return 'Tidak tersedia';
+    }
+    return `Rp${value.toLocaleString("id-ID")}`;
+  };
+
+  // Helper function to safely display text values
+  const displayValue = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined || value === '') {
+      return 'Tidak tersedia';
+    }
+    return String(value);
+  };
+
+// Helper function to handle portfolio link press
+  const handlePortfolioPress = async (portfolio: string | null | undefined) => {
+    if (!portfolio || portfolio.trim() === '') {
+      return;
+    }
+
+    const cleanPortfolio = portfolio.trim();
+    let url = cleanPortfolio;
+
+    // Add https:// if the URL doesn't have a protocol
+    if (!cleanPortfolio.startsWith('http://') && !cleanPortfolio.startsWith('https://')) {
+      url = `https://${cleanPortfolio}`;
     }
 
     try {
-      const photoNumber = parseInt(userProfile.photo);
-      if (isNaN(photoNumber) || photoNumber < 1 || photoNumber > 11) {
-        return require('@/assets/images/blank-profile.png');
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Tidak dapat membuka link portfolio');
       }
-
-      // Using a map for cleaner switch
-      const imageMap: { [key: number]: any } = {
-        1: require('@/assets/images/1.png'),
-        2: require('@/assets/images/2.png'),
-        3: require('@/assets/images/3.png'),
-        4: require('@/assets/images/4.png'),
-        5: require('@/assets/images/5.png'),
-        6: require('@/assets/images/6.png'),
-        7: require('@/assets/images/7.png'),
-        8: require('@/assets/images/8.png'),
-        9: require('@/assets/images/9.png'),
-        10: require('@/assets/images/10.png'),
-        11: require('@/assets/images/11.png'),
-      };
-      return imageMap[photoNumber] || require('@/assets/images/blank-profile.png');
-
     } catch (error) {
-      console.error('Error loading profile image:', error);
-      return require('@/assets/images/blank-profile.png');
+      console.error('Error opening portfolio link:', error);
+      Alert.alert('Error', 'Gagal membuka link portfolio');
     }
+  };
+
+  // Helper function to truncate portfolio link to one line
+  const truncatePortfolio = (portfolio: string | null | undefined): string => {
+    if (!portfolio || portfolio.trim() === '') {
+      return 'Tidak tersedia';
+    }
+    
+    // Remove line breaks and extra spaces, then truncate if too long
+    const cleanPortfolio = portfolio.replace(/\s+/g, ' ').trim();
+    const maxLength = 40; // Adjust based on your UI needs
+    
+    if (cleanPortfolio.length > maxLength) {
+      return cleanPortfolio.substring(0, maxLength) + '...';
+    }
+    
+    return cleanPortfolio;
   };
 
   const MenuOption: React.FC<MenuOptionProps> = ({ icon, title, onPress }) => (
@@ -152,6 +198,8 @@ export default function Profile() {
           <Image
             source={getProfileImageSource()}
             style={styles.profileImage}
+            onError={handleImageError}
+            onLoad={handleImageLoad}
           />
         )}
       </View>
@@ -161,16 +209,62 @@ export default function Profile() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Content below the profile image, shifted down by paddingTop in whiteSheet */}
+        {/* Content below the profile image */}
         <View style={styles.profileTextContent}>
-          {/* Display username from auth context (available early) or from fetched profile */}
           <Text style={[theme.typography.title, {color: theme.colors.customGreen[500]}]}>
-            {userProfile?.username || 'Pengguna'}
+            {displayValue(userProfile?.username || name)}
           </Text>
           <TouchableOpacity onPress={() => router.push('/profile/edit')}>
             <Text style={[styles.editProfileText, theme.typography.body2]}>Edit profil</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Profile Details Section */}
+        {userProfile && (
+          <View style={styles.profileDetailsSection}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Lokasi:</Text>
+              <Text style={styles.detailValue}>
+                {displayValue(userProfile.city)}{userProfile.city && userProfile.province ? ', ' : ''}{displayValue(userProfile.province)}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Pengalaman:</Text>
+              <Text style={styles.detailValue}>
+                {userProfile.experience !== null && userProfile.experience !== undefined 
+                  ? `${userProfile.experience} tahun` 
+                  : 'Tidak tersedia'}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Tarif Chat:</Text>
+              <Text style={styles.detailValue}>{formatCurrency(userProfile.rateOnline)}/sesi (30 menit)</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Tarif Offline:</Text>
+              <Text style={styles.detailValue}>{formatCurrency(userProfile.rateOffline)}/sesi (1 jam)</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Portfolio:</Text>
+              <TouchableOpacity 
+                onPress={() => handlePortfolioPress(userProfile.portfolio)}
+                disabled={!userProfile.portfolio || userProfile.portfolio.trim() === ''}
+                style={styles.portfolioContainer}
+              >
+                <Text 
+                  style={[
+                    styles.detailValue, 
+                    userProfile.portfolio && userProfile.portfolio.trim() !== '' ? styles.portfolioLink : null
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {truncatePortfolio(userProfile.portfolio)}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <View style={styles.menuSection}>
           <MenuOption
@@ -223,14 +317,13 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: theme.colors.customWhite[50],
   },
-  // ADDED: Style for the loader container to match profile image dimensions
   profileImageLoaderContainer: {
     width: PROFILE_IMAGE_SIZE,
     height: PROFILE_IMAGE_SIZE,
     borderRadius: PROFILE_IMAGE_SIZE / 2,
     borderWidth: 4,
     borderColor: theme.colors.customWhite[50],
-    backgroundColor: theme.colors.customGray[50], // A light background for the loader
+    backgroundColor: theme.colors.customGray[50],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -239,7 +332,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.customWhite[50],
     borderTopLeftRadius: WHITE_SHEET_BORDER_RADIUS,
     borderTopRightRadius: WHITE_SHEET_BORDER_RADIUS,
-    paddingTop: (PROFILE_IMAGE_SIZE / 2) + 20, // Ensure content starts below the profile image
+    paddingTop: (PROFILE_IMAGE_SIZE / 2) + 20,
     paddingHorizontal: 24,
   },
   profileTextContent: {
@@ -250,6 +343,42 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textDecorationLine: 'underline',
     color: theme.colors.customGreen[200]
+  },
+  profileDetailsSection: {
+    backgroundColor: theme.colors.customWhite[50],
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.customGray[100],
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.customGray[50],
+  },
+  detailLabel: {
+    ...theme.typography.body2,
+    color: theme.colors.customOlive[50],
+    flex: 1,
+    fontWeight: '500',
+  },
+  detailValue: {
+    ...theme.typography.body2,
+    color: theme.colors.customOlive[100],
+    flex: 2,
+    textAlign: 'right',
+  },
+  portfolioContainer: {
+    flex: 2,
+    alignItems: 'flex-end',
+  },
+  portfolioLink: {
+    color: theme.colors.customGreen[300],
+    textDecorationLine: 'underline',
   },
   menuSection: {
     backgroundColor: theme.colors.customWhite[50],
@@ -274,7 +403,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   footerContainer: {
-    marginTop: 40,
+    marginVertical: 40,
     alignItems: 'center',
   },
 });

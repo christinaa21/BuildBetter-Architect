@@ -11,7 +11,7 @@ interface MenuOptionProps {
   onPress?: () => void;
 }
 
-export default function Profile() {
+export default function Help() {
   const router = useRouter();
 
   const MenuOption: React.FC<MenuOptionProps> = ({ icon, title, content, onPress }) => (

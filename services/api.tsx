@@ -11,6 +11,7 @@ export interface LoginResponse {
     token: string;
     userId: string;
     email: string;
+    username: string;
   };
   error?: string;
 }
@@ -40,13 +41,23 @@ export interface UserProfileResponse {
   error?: string;
 }
 
+export interface PhotoUploadPayload {
+  uri: string;
+  type: string; // MIME type e.g., 'image/jpeg'
+  name: string; // Filename e.g., 'profile.jpg'
+}
+
 export interface UpdateProfileData {
-  phoneNumber: string;
-  email: string;
-  username: string;
-  province: string;
-  city: string;
-  photo: string;
+    email: string;
+    username: string;
+    photo: PhotoUploadPayload | null; // Updated to use PhotoUploadPayload
+    province: string;
+    city: string;
+    phoneNumber: string;
+    experience: number;
+    rateOnline: number;
+    rateOffline: number;
+    portfolio: string;
 }
 
 export interface UpdateProfileResponse {
@@ -101,14 +112,16 @@ export const authApi = {
    
     await SecureStore.setItemAsync('userToken', data.token);
     await SecureStore.setItemAsync('userId', data.userId);
-    await SecureStore.setItemAsync('userEmail', data.email);
+    await SecureStore.setItemAsync('email', data.email);
+    await SecureStore.setItemAsync('username', data.username);
   },
  
   // Clear authentication data
   clearAuthData: async () => {
     await SecureStore.deleteItemAsync('userToken');
     await SecureStore.deleteItemAsync('userId');
-    await SecureStore.deleteItemAsync('userEmail');
+    await SecureStore.deleteItemAsync('email');
+    await SecureStore.deleteItemAsync('username');
   },
 
   // Get user profile
@@ -127,19 +140,73 @@ export const authApi = {
       };
     }
   },
-  
+
   updateProfile: async (data: UpdateProfileData): Promise<UpdateProfileResponse> => {
     try {
-      const response = await apiClient.patch<UpdateProfileResponse>('/architects', data);
+      const formData = new FormData();
+
+      // Append all regular fields
+      formData.append('email', data.email);
+      formData.append('username', data.username);
+      formData.append('province', data.province);
+      formData.append('city', data.city);
+      formData.append('phoneNumber', data.phoneNumber);
+      formData.append('experience', data.experience.toString());
+      formData.append('rateOnline', data.rateOnline.toString());
+      formData.append('rateOffline', data.rateOffline.toString());
+      formData.append('portfolio', data.portfolio || ''); // Handle potentially null/undefined portfolio
+
+      // Append photo if it exists and has a URI
+      if (data.photo && data.photo.uri) {
+        const photoPayload: any = { // Cast to any to satisfy FormData append if TS complains
+          uri: data.photo.uri,
+          type: data.photo.type,
+          name: data.photo.name,
+        };
+        formData.append('photo', photoPayload); // 'photo' must match backend's expected field name for the file
+      }
+
+      // Make the PATCH request with FormData.
+      // We override the headers for THIS specific request.
+      const response = await apiClient.patch<UpdateProfileResponse>(
+        '/architects',
+        formData,
+        {
+          headers: {
+            // By setting 'Content-Type' to null or undefined here,
+            // we instruct Axios to remove any default 'Content-Type' (like 'application/json')
+            // and then automatically set the correct 'multipart/form-data' header
+            // with the appropriate boundary, because the `data` argument (`formData`) is an instance of FormData.
+            'Content-Type': null, // Or 'Content-Type': undefined
+          },
+        }
+      );
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as UpdateProfileResponse;
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error updating profile:', error.message);
+        if (error.response) {
+          console.error('Error response data:', error.response.data);
+          console.error('Error response status:', error.response.status);
+          console.error('Error response headers:', error.response.headers); // Log response headers from server
+        }
+        // Log the request config headers to see what Axios actually tried to send
+        if (error.config) {
+          console.error('Request config headers Axios tried to send:', error.config.headers);
+        }
+        return (
+          error.response?.data as UpdateProfileResponse || {
+            code: error.response?.status || 500,
+            status: 'ERROR',
+            error: error.message || 'An unknown Axios error occurred',
+          }
+        );
       }
+      console.error('Non-Axios error updating profile:', error);
       return {
         code: 500,
         status: 'ERROR',
-        error: 'Network or server error. Please check your connection and try again.'
+        error: 'An unexpected error occurred. Please try again.',
       };
     }
   },
