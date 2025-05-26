@@ -14,6 +14,7 @@ type AuthContextType = {
   } | null;
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
+  updateUser: (updates: { email?: string; username?: string }) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,6 +73,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticated(false);
   };
 
+  const updateUser = (updates: { email?: string; username?: string }) => {
+    setUser(prev => prev ? { ...prev, ...updates } : null);
+  };
+
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
@@ -79,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, 
       login, 
       logout,
+      updateUser,
     }}>
       {children}
     </AuthContext.Provider>

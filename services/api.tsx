@@ -67,6 +67,19 @@ export interface UpdateProfileResponse {
   error?: string | string[];
 }
 
+export interface ChangePasswordData {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  code: number;
+  status: string;
+  message?: string;
+  error?: string;
+}
+
 // API client
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -114,6 +127,16 @@ export const authApi = {
     await SecureStore.setItemAsync('userId', data.userId);
     await SecureStore.setItemAsync('email', data.email);
     await SecureStore.setItemAsync('username', data.username);
+  },
+
+  // Update specific auth data fields
+  updateAuthData: async (updates: { email?: string; username?: string }) => {
+    if (updates.email) {
+      await SecureStore.setItemAsync('email', updates.email);
+    }
+    if (updates.username) {
+      await SecureStore.setItemAsync('username', updates.username);
+    }
   },
  
   // Clear authentication data
@@ -181,6 +204,15 @@ export const authApi = {
           },
         }
       );
+
+      // If update is successful, update SecureStore with new email and username
+      if (response.data.code === 200) {
+        await authApi.updateAuthData({
+          email: data.email,
+          username: data.username
+        });
+      }
+
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -207,6 +239,26 @@ export const authApi = {
         code: 500,
         status: 'ERROR',
         error: 'An unexpected error occurred. Please try again.',
+      };
+    }
+  },
+  
+  changePassword: async (data: ChangePasswordData): Promise<ChangePasswordResponse> => {
+    try {
+      const response = await apiClient.patch<ChangePasswordResponse>('/architects/change-password', {
+        oldPassword: data.oldPassword,
+        newPassword: data.newPassword,
+        confirmNewPassword: data.confirmNewPassword
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as ChangePasswordResponse;
+      }
+      return {
+        code: 500,
+        status: 'ERROR',
+        error: 'Network or server error. Please check your connection and try again.'
       };
     }
   },

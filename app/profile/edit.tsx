@@ -22,6 +22,7 @@ import Button from '@/components/Button';
 import Dropdown from '@/components/Dropdown';
 import theme from '../theme';
 import locationData from '@/data/location.json';
+import { useAuth } from '@/context/AuthContext';
 
 interface ProfileEditFormData {
   phoneNumber: string;
@@ -50,6 +51,7 @@ interface ValidationState {
 
 export default function ProfileEdit() {
   const router = useRouter();
+  const { updateUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -432,6 +434,11 @@ export default function ProfileEdit() {
 
       const response = await authApi.updateProfile(updateData);
       if (response.code === 200) {
+        // Update the AuthContext user state with new email and username
+        updateUser({
+          email: formData.email,
+          username: formData.username
+        });
         // Update originalData with the successfully saved form data including the new photo URI (if any)
         const newOriginalData = { ...formData };
         if (photoPayloadForApi) { // If a new photo was uploaded
