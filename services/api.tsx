@@ -160,6 +160,14 @@ export interface getAllChatsByRoomIdResponse {
   error?: string;
 }
 
+export interface sendFileInChatResponse {
+  code: number;
+  status: string;
+  message?: string;
+  data?: string;
+  error?: string;
+}
+
 // API client
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -433,6 +441,40 @@ export const authApi = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         return error.response.data as getAllChatsByRoomIdResponse; // Return null if room not found or error occurs
+      }
+      throw error; // Rethrow unexpected errors
+    }
+  },
+
+  // SEND FILE IN CHAT
+  sendFileInChat: async (
+    roomId: string,
+    file: PhotoUploadPayload
+  ): Promise<sendFileInChatResponse> => {
+    try {
+      const formData = new FormData();
+
+      if (file && file.uri) {
+        formData.append("file", {
+          uri: file.uri,
+          type: file.type,
+          name: file.name,
+        } as any);
+      }
+
+      const response = await apiClient.post<sendFileInChatResponse>(
+        `/chats/${roomId}/file`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as sendFileInChatResponse; // Return null if room not found or error occurs
       }
       throw error; // Rethrow unexpected errors
     }
