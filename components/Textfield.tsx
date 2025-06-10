@@ -26,8 +26,12 @@ interface TextfieldProps extends TextInputProps {
   example?: string;
   error?: string;
   isPassword?: boolean;
+  icon?: React.ReactNode;
   validate?: (text: string) => string | undefined;
   onValidation?: (isValid: boolean) => void;
+  height?: number;
+  paddingVertical?: number;
+  borderRadius?: number;
 }
 
 const Textfield: React.FC<TextfieldProps> = ({
@@ -35,9 +39,13 @@ const Textfield: React.FC<TextfieldProps> = ({
   example,
   error,
   isPassword,
+  icon,
   validate,
   onValidation,
   onChangeText,
+  height,
+  paddingVertical,
+  borderRadius = 16,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -129,30 +137,49 @@ const Textfield: React.FC<TextfieldProps> = ({
     ],
   };
 
+  // Fix: Use type assertion to bypass TypeScript's strict typing
+  const coloredIcon = icon && React.isValidElement(icon) 
+    ? React.cloneElement(icon as React.ReactElement<any>, {
+        color: localError ? 'red' : (theme.colors.customGreen[300]),
+        size: 20,
+      })
+    : icon;
+
   return (
     <View style={styles.container}>
-      <View style={styles.labelContainer}>
-        <Animated.Text 
-          style={[
-            styles.label,
-            typography.body2,
-            labelStyle,
-            isFocused && !localError && styles.labelFocused,
-            localError && styles.labelError,
-          ]}
-        >
-          {label || props.placeholder}
-        </Animated.Text>
-      </View>
+      {label && (
+        <View style={styles.labelContainer}>
+          <Animated.Text 
+            style={[
+              styles.label,
+              typography.body2,
+              labelStyle,
+              isFocused && !localError && styles.labelFocused,
+              localError && styles.labelError,
+            ]}
+          >
+            {label}
+          </Animated.Text>
+        </View>
+      )}
       
       <Animated.View
         style={[
           styles.inputContainer,
-          { borderColor: getBorderColor() },
+          { borderColor: getBorderColor(), height: height, borderRadius: borderRadius },
         ]}
       >
+        {icon && (
+          <View style={styles.iconContainer}>
+            {coloredIcon}
+          </View>
+        )}
         <TextInput
-          style={[styles.input, typography.body1]}
+          style={[
+            styles.input, 
+            typography.body1,
+            {paddingVertical: paddingVertical},
+          ]}
           onFocus={handleFocus}
           onBlur={handleBlur}
           onChangeText={handleChangeText}
@@ -217,6 +244,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
     elevation: 2,
+  },
+  iconContainer: {
+    paddingLeft: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,

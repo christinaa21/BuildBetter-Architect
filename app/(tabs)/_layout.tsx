@@ -33,8 +33,8 @@ export default function TabsLayout() {
               case 'chat':
                 iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
                 break;
-              case 'jadwal':
-                iconName = focused ? 'calendar' : 'calendar-outline';
+              case 'tatap-muka':
+                iconName = focused ? 'location' : 'location-outline';
                 break;
               case 'history':
                 iconName = focused ? 'time' : 'time-outline';
@@ -60,10 +60,10 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="jadwal"
+          name="tatap-muka"
           options={{
-            title: "Jadwal",
-            tabBarLabel: "Jadwal",
+            title: "Tatap Muka",
+            tabBarLabel: "Tatap Muka",
           }}
         />
         <Tabs.Screen

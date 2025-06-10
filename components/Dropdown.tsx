@@ -34,6 +34,7 @@ interface DropdownProps {
   error?: string;
   searchPlaceholder?: string;
   maxHeight?: number;
+  disabled?: boolean;
 }
 
 const Dropdown: React.FC<DropdownProps> = ({
@@ -45,6 +46,7 @@ const Dropdown: React.FC<DropdownProps> = ({
   error,
   searchPlaceholder = 'Cari...',
   maxHeight= 0.6,
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -64,6 +66,8 @@ const Dropdown: React.FC<DropdownProps> = ({
   }, [options, searchQuery]);
 
   const animateFocus = (focused: boolean) => {
+    if (disabled) return;
+    
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     
     Animated.parallel([
@@ -81,6 +85,8 @@ const Dropdown: React.FC<DropdownProps> = ({
   };
 
   const handlePress = () => {
+    if (disabled) return;
+    
     setIsOpen(true);
     setIsFocused(true);
     setSearchQuery('');
@@ -102,6 +108,7 @@ const Dropdown: React.FC<DropdownProps> = ({
   };
 
   const getBorderColor = () => {
+    if (disabled) return theme.colors.customGray[50];
     if (error) return 'red';
     return borderColorAnim.interpolate({
       inputRange: [0, 1],
@@ -128,26 +135,29 @@ const Dropdown: React.FC<DropdownProps> = ({
             styles.label,
             typography.body2,
             labelStyle,
-            isFocused && !error && styles.labelFocused,
-            error && styles.labelError,
+            isFocused && !error && !disabled && styles.labelFocused,
+            error && !disabled && styles.labelError,
+            disabled && styles.labelDisabled,
           ]}
         >
           {label || placeholder}
         </Animated.Text>
       </View>
 
-      <Pressable onPress={handlePress}>
+      <Pressable onPress={handlePress} disabled={disabled}>
         <Animated.View
           style={[
             styles.inputContainer,
             { borderColor: getBorderColor() },
+            disabled && styles.inputContainerDisabled,
           ]}
         >
           <Text 
             style={[
               styles.selectedText,
               typography.body1,
-              !selectedOption && styles.placeholder
+              !selectedOption && styles.placeholder,
+              disabled && styles.textDisabled,
             ]}
           >
             {selectedOption ? selectedOption.label : placeholder}
@@ -155,20 +165,20 @@ const Dropdown: React.FC<DropdownProps> = ({
           <MaterialIcons 
             name={isOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
             size={24} 
-            color={theme.colors.customOlive[50]}
+            color={disabled ? theme.colors.customGray[100] : theme.colors.customOlive[50]}
             style={styles.icon}
           />
         </Animated.View>
       </Pressable>
 
-      {error && (
+      {error && !disabled && (
         <Text style={[styles.errorText, typography.caption]}>
           {error}
         </Text>
       )}
 
       <Modal
-        visible={isOpen}
+        visible={isOpen && !disabled}
         transparent
         animationType="fade"
         onRequestClose={handleClose}
@@ -286,6 +296,9 @@ const styles = StyleSheet.create({
   labelError: {
     color: 'red',
   },
+  labelDisabled: {
+    color: theme.colors.customGray[100],
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -298,12 +311,20 @@ const styles = StyleSheet.create({
     shadowRadius: 1,
     elevation: 2,
   },
+  inputContainerDisabled: {
+    backgroundColor: theme.colors.customWhite[50],
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   selectedText: {
     flex: 1,
     padding: 16,
     color: theme.colors.customGreen[500],
   },
   placeholder: {
+    color: theme.colors.customGray[100],
+  },
+  textDisabled: {
     color: theme.colors.customGray[100],
   },
   icon: {

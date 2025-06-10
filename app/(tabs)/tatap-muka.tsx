@@ -31,7 +31,7 @@ const mapConsultationStatus = (status: string): ConsultationStatus => {
   }
 };
 
-export default function Chat() {
+export default function TatapMuka() {
   const router = useRouter();
   const { user } = useAuth();
   const name = user?.username;
@@ -74,7 +74,7 @@ export default function Chat() {
 
       // Call the architect's consultation API
       const consultationResponse = await authApi.getConsultation({
-        type: 'online',
+        type: 'offline',
         status: undefined,
         includeCancelled: false,
         upcoming: undefined,
@@ -226,7 +226,7 @@ export default function Chat() {
             Hai, {name}!
           </Text>
           <Text style={[theme.typography.body1, styles.description]}>
-            Belum ada konsultasi via chat yang tersedia. Daftar konsultasi Anda akan muncul di sini.
+            Belum ada konsultasi tatap muka yang tersedia. Daftar konsultasi Anda akan muncul di sini.
           </Text>
           
           <View style={styles.infoBox}>

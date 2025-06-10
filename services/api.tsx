@@ -84,7 +84,7 @@ export interface GetConsultationRequestParams {
   type?: "online" | "offline";
   status?:
     | "waiting-for-payment"
-    | "waiting-for-conifrmation"
+    | "waiting-for-confirmation"
     | "cancelled"
     | "scheduled"
     | "in-progress"
@@ -106,7 +106,7 @@ export interface Consultation {
   total: number;
   status:
     | "waiting-for-payment"
-    | "waiting-for-conifrmation"
+    | "waiting-for-confirmation"
     | "cancelled"
     | "scheduled"
     | "in-progress"
@@ -123,6 +123,31 @@ export interface GetArchitectConsultationResponse {
   code: number;
   status: string;
   data?: Consultation[];
+  error?: string;
+}
+
+export interface GetConsultationByIdResponse {
+  code: number;
+  status: string;
+  data?: {
+    id: string;
+    userId: string;
+    userName: string;
+    userCity: string;
+    architectId: string;
+    architectName: string;
+    architectCity: string;
+    roomId: string | null;
+    type: 'online' | 'offline';
+    total: number;
+    status: 'waiting-for-payment' | 'scheduled' | 'in-progress' | 'ended' | 'cancelled' | 'waiting-for-confirmation';
+    reason: string | null;
+    location: string | null;
+    locationDescription: string | null;
+    startDate: string;
+    endDate: string;
+    createdAt: string;
+  };
   error?: string;
 }
 
@@ -374,8 +399,19 @@ export const authApi = {
     data: GetConsultationRequestParams
   ): Promise<GetArchitectConsultationResponse> => {
     try {
+      // Get the architect ID from SecureStore
+      const architectId = await SecureStore.getItemAsync("userId");
+      
+      if (!architectId) {
+        return {
+          code: 401,
+          status: "ERROR",
+          error: "Architect ID not found. Please log in again.",
+        };
+      }
+
       const response = await apiClient.get<GetArchitectConsultationResponse>(
-        "/architects/consultations",
+        `/architects/${architectId}/consultations`, // Updated URL with architectId
         {
           params: {
             type: data.type,
@@ -400,19 +436,19 @@ export const authApi = {
   },
 
   // GET CONSULTATION BY ID
-  getConsultationById: async (
-    consultationId: string
-  ): Promise<GetArchitectConsultationResponse> => {
+  getConsultationById: async (consultationId: string): Promise<GetConsultationByIdResponse> => {
     try {
-      const response = await apiClient.get<GetArchitectConsultationResponse>(
-        `/consultations/${consultationId}`
-      );
+      const response = await apiClient.get<GetConsultationByIdResponse>(`/consultations/${consultationId}`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        return error.response.data as GetArchitectConsultationResponse;
+        return error.response.data as GetConsultationByIdResponse;
       }
-      throw error; // Rethrow unexpected errors
+      return {
+        code: 500,
+        status: 'ERROR',
+        error: 'Network or server error. Please check your connection and try again.'
+      };
     }
   },
 
