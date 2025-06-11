@@ -515,4 +515,20 @@ export const authApi = {
       throw error; // Rethrow unexpected errors
     }
   },
+  
+  refreshConsultations: async (): Promise<UpdateProfileResponse> => {
+    try {
+      const response = await apiClient.post<UpdateProfileResponse>('/consultations/refresh');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data as UpdateProfileResponse;
+      }
+      return {
+        code: 500,
+        status: 'ERROR',
+        error: 'Network or server error. Please check your connection and try again.'
+      };
+    }
+  },
 };
